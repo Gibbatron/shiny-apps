@@ -18,3 +18,4 @@ Notes:
 - If you have used a human-formatted gene list and need to convert it to mouse-specific format, you can download the converted list via the 'Download Gene List' button after clicking 'Submit'
 - Depending on the sixe of your Seurat object and gene list, please allow some time for the feature and violin plots to load after the progress bar reaches 100%
 - To download the figures, simply right click on the figure and save.
+- The AddModuleScore() function by default adds a '1' to the end of the module name (e.g. module-list -> module-list1). Please bear this in mind if you have a modulename that ends with a '1', after processing, it will now end in '11'.
