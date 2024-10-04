@@ -6,11 +6,26 @@ The scCustomize packages version of the Featureplot (FeaturePlot_scCustom) produ
 The SeuratExtend packages version if the Violin Plot (VlnPlot2) produces nicer looking plots, with optional statistical significance testing between groups.
 
 
-Prerequisites:
+**Prerequisites:**
 - The Seurat object must contain processed data up to UMAP/tSNE stage.
+- You will need to install the following packages. Simply paste the following into your RStudio console:
+
+```
+install.packages('Seurat') #from CRAN
+install.packages("dplyr") #from CRAN
+install.packages("shiny") #from CRAN
+install.packages("scCustomize") #from CRAN
+
+#install SeuratExtend from Github
+if (!requireNamespace("remotes", quietly = TRUE)) {
+    install.packages("remotes")
+}
+
+remotes::install_github("huayc09/SeuratExtend")
+```
 
 
-Notes:
+**Notes:**
 - Please allow some time for the app to load your Seurat object, this can take anywhere from 5 seconds to 5 minutes, depending on the size of the object and the speed of your PC.
 - Please allow time for the app to parse through your gene list and perform any relevant conversions. This can also take some time depending on the size of your list.
 - Once you have selected your Seurat object to upload, please wait for the loading bar to say 'upload completed' before moving onto section 2.
