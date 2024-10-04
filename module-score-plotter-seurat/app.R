@@ -1,13 +1,13 @@
 #Install packages
-install.packages('Seurat') #from CRAN
-install.packages("dplyr") #from CRAN
-install.packages("shiny") #from CRAN
-install.packages("scCustomize") #from CRAN
+#install.packages('Seurat') #from CRAN
+#install.packages("dplyr") #from CRAN
+#install.packages("shiny") #from CRAN
+#install.packages("scCustomize") #from CRAN
 #install SeuratExtend from Github
-if (!requireNamespace("remotes", quietly = TRUE)) {
-    install.packages("remotes")
-}
-remotes::install_github("huayc09/SeuratExtend")
+#if (!requireNamespace("remotes", quietly = TRUE)) {
+#    install.packages("remotes")
+#}
+#remotes::install_github("huayc09/SeuratExtend")
 
 #Load Libraries
 library(Seurat)
