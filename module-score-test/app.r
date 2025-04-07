@@ -76,7 +76,7 @@ ui <- fluidPage(
       radioButtons("feature_format", "Download FeaturePlot as:", choices = c("PNG", "SVG", "PDF"), inline = TRUE),
       downloadButton("downloadFeaturePlot", "Download FeaturePlot"),
 
-      tags$hr() # horizontal divider
+      tags$hr(), # horizontal divider
       
       plotOutput("vln_plot"),  #output for VlnPlot
       radioButtons("vln_format", "Download Violin Plot as:", choices = c("PNG", "SVG", "PDF"), inline = TRUE),
