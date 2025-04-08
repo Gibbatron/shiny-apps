@@ -25,7 +25,7 @@ ui <- fluidPage(
       h2("Module Score Feature Plotter & Violin Plotter For scRNAseq Seurat Data"),  # Main title
       h5("A tool that takes a processed Seurat object and list of genes as input, performs AddModuleScore function, and visualises the module score via a Feature plot (scCustomize) and Violin plot (SeuratExtend)."),#subtitle
       h4("Author: Dr. Alex Gibbs"),  # Author name
-      h5("Last updated: 04/10/2024")  # Manually inserted date
+      h5("Last updated: 07/04/2025")  # Manually inserted date
     )
   ),
 
@@ -71,8 +71,16 @@ ui <- fluidPage(
     #format the main panel
     mainPanel(
       verbatimTextOutput("output"),
+
       plotOutput("feature_plot"), #output for feature plot
-      plotOutput("vln_plot")  #output for VlnPlot2
+      radioButtons("feature_format", "Download FeaturePlot as:", choices = c("PNG", "SVG", "PDF"), inline = TRUE),
+      downloadButton("downloadFeaturePlot", "Download FeaturePlot"),
+
+      tags$hr(), # horizontal divider
+      
+      plotOutput("vln_plot"),  #output for VlnPlot
+      radioButtons("vln_format", "Download Violin Plot as:", choices = c("PNG", "SVG", "PDF"), inline = TRUE),
+      downloadButton("downloadVlnPlot", "Download Violin Plot")
     )
   )
 )
@@ -90,6 +98,41 @@ server <- function(input, output, session) {
   # Reactive value to store the converted gene list for download
   converted_gene_list <- reactiveVal(NULL)
   
+  # Reactive value to store the module score name
+  module_score_name <- reactiveVal(NULL)
+  
+  # Reactive expressions for the plots
+  feature_plot_reactive <- reactive({
+    req(seurat_obj(), module_score_name())
+    seurat_data <- seurat_obj()
+    full_feature_name <- paste0(module_score_name(), "1")
+    
+    # Check if the module score column exists in the metadata
+    if(!full_feature_name %in% colnames(seurat_data@meta.data)) {
+      return(NULL)
+    }
+    
+    FeaturePlot_scCustom(seurat_data, features = full_feature_name)
+  })
+
+  vln_plot_reactive <- reactive({
+    req(seurat_obj(), input$vln_variable, module_score_name())
+    seurat_data <- seurat_obj()
+    full_feature_name <- paste0(module_score_name(), "1")
+    
+    # Check if the module score column exists in the metadata
+    if(!full_feature_name %in% colnames(seurat_data@meta.data)) {
+      return(NULL)
+    }
+    
+    VlnPlot2(seurat_data,
+             features = full_feature_name,
+             assay = "RNA",
+             group.by = input$vln_variable,
+             split.by = if(nchar(input$split_variable) > 0) input$split_variable else NULL,
+             stat.method = "wilcox.test")
+  })
+
   # Update variable choices when the Seurat object is uploaded
   observeEvent(input$seurat_obj, {
     req(input$seurat_obj)
@@ -98,8 +141,8 @@ server <- function(input, output, session) {
     
     # Get metadata columns and update the select input choices
     metadata_cols <- colnames(seurat_data@meta.data)
-    updateSelectInput(session, "vln_variable", choices = metadata_cols) #update the variable choices
-    updateSelectInput(session, "split_variable", choices = metadata_cols)  #update split variable choices
+    updateSelectInput(session, "vln_variable", choices = c("", metadata_cols)) #update the variable choices
+    updateSelectInput(session, "split_variable", choices = c("", metadata_cols))  #update split variable choices
   })
   
   # Handle submit button click
@@ -109,7 +152,6 @@ server <- function(input, output, session) {
     # Add progress bar
     withProgress(message = 'Processing..', {
       incProgress(0.1)
-
     
       tryCatch({ #used for error handling
         # Get the Seurat object
@@ -135,10 +177,17 @@ server <- function(input, output, session) {
           converted_gene_list(gene_list)
           
           # Use the title provided by the user, defaulting to "ModuleScore" if empty
-          module_score_name <- ifelse(nchar(input$gene_title) > 0, input$gene_title, "ModuleScore")
+          module_title <- ifelse(nchar(input$gene_title) > 0, input$gene_title, "ModuleScore")
           
-          # Perform the FindModuleScore
-          seurat_data <- AddModuleScore(object = seurat_data, features = list(gene_list), name = module_score_name)
+          # Store the module score name in reactive value
+          module_score_name(module_title)
+          
+          # Perform the AddModuleScore
+          seurat_data <- AddModuleScore(object = seurat_data, features = list(gene_list), name = module_title)
+          
+          # Update the Seurat object reactive value with the new object containing module scores
+          seurat_obj(seurat_data)
+          
           incProgress(0.4)  # Progress after calculating module score
           
           # Render output with the number of found genes
@@ -148,24 +197,8 @@ server <- function(input, output, session) {
             list(
               total_genes_input = total_genes_input,
               genes_found = genes_found,
-              module_score_column = paste0(module_score_name, "1")  # Update to reflect user title
+              module_score_column = paste0(module_title, "1")  # Display the exact column name
             )
-          })
-          
-          # Plot the module score using FeaturePlot_scCustom
-          output$feature_plot <- renderPlot({
-            FeaturePlot_scCustom(seurat_data, features = paste0(module_score_name, "1"))  # Use user-defined name
-          })
-          
-          # Plot violin plot using VlnPlot2 with the selected variable
-          output$vln_plot <- renderPlot({
-            req(input$vln_variable)  # Ensure a variable is selected
-            # Split by additional variable if provided
-            VlnPlot2(seurat_data, features = paste0(module_score_name, "1"), 
-                     assay = "RNA", 
-                     group.by = input$vln_variable, 
-                     split.by = input$split_variable,  # Additional splitting variable
-                     stat.method = "wilcox.test")  # Statistical testing
           })
           
           incProgress(0.2)  # Final progress increment
@@ -187,6 +220,63 @@ server <- function(input, output, session) {
     content = function(file) {
       req(converted_gene_list())  # Ensure the gene list is available
       writeLines(converted_gene_list(), file)  # Write the gene list to the file
+    }
+  )
+
+  # Render the plots
+  output$feature_plot <- renderPlot({
+    req(feature_plot_reactive())
+    feature_plot_reactive()
+  })
+  
+  output$vln_plot <- renderPlot({
+    req(vln_plot_reactive())
+    vln_plot_reactive()
+  })
+
+  # Download handler for feature plot
+  output$downloadFeaturePlot <- downloadHandler(
+    filename = function() {
+      paste0("Feature_Plot_", Sys.Date(), ".", tolower(input$feature_format))
+    },
+    content = function(file) {
+      format <- input$feature_format
+      if (format == "PNG") {
+        png(file, width = 1200, height = 1000, res = 150)
+        print(feature_plot_reactive())
+        dev.off()
+      } else if (format == "PDF") {
+        pdf(file, width = 10, height = 8)
+        print(feature_plot_reactive())
+        dev.off()
+      } else if (format == "SVG") {
+        svg(file, width = 10, height = 8)
+        print(feature_plot_reactive())
+        dev.off()
+      }
+    }
+  )
+
+  # Download handler for violin plot
+  output$downloadVlnPlot <- downloadHandler(
+    filename = function() {
+      paste0("Violin_Plot_", Sys.Date(), ".", tolower(input$vln_format))
+    },
+    content = function(file) {
+      format <- input$vln_format
+      if (format == "PNG") {
+        png(file, width = 1200, height = 1000, res = 150)
+        print(vln_plot_reactive())
+        dev.off()
+      } else if (format == "PDF") {
+        pdf(file, width = 10, height = 8)
+        print(vln_plot_reactive())
+        dev.off()
+      } else if (format == "SVG") {
+        svg(file, width = 10, height = 8)
+        print(vln_plot_reactive())
+        dev.off()
+      }
     }
   )
 }

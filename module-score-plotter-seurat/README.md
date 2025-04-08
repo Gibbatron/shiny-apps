@@ -24,6 +24,23 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
 remotes::install_github("huayc09/SeuratExtend")
 ```
 
+If Mac users want to save the plots as SVG, you will need to ensure you have XQuartz installed on your system.
+
+Assuming you have brew installed on the command line, open a Terminal session:
+
+```
+brew install --cask xquartz
+```
+
+Then close the Terminal session and restart your RStudio if you have it open.
+
+**Launching the app**
+
+To launch the app, paste the following into the RStudio console:
+
+```
+runGitHub(repo = 'Gibbatron/shiny-apps', subdir = 'module-score-plotter-seurat')
+```
 
 **Notes:**
 - Please allow some time for the app to load your Seurat object, this can take anywhere from 5 seconds to 5 minutes, depending on the size of the object and the speed of your PC.
